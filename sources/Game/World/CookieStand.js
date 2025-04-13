@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu'
 import { Game } from '../Game.js'
-import { color, float, Fn, mix, normalWorld, step, storage, texture, uniform, uv, vec2, vec3, vec4 } from 'three/tsl'
+import { color, float, Fn, mix, normalWorld, positionGeometry, step, storage, texture, uniform, uv, vec2, vec3, vec4 } from 'three/tsl'
 import { InstancedGroup } from '../InstancedGroup.js'
 import gsap from 'gsap'
 import { InteractiveAreas } from '../InteractiveAreas2.js'
@@ -47,10 +47,30 @@ export class CookieStand
 
         // Shadow receive
         const totalShadows = this.game.lighting.addTotalShadowToMaterial(material)
+        const windStrength = float(0).toVarying()
+
+        material.positionNode = Fn(() =>
+        {
+            const baseUv = uv().toVar()
+            const newPosition = positionGeometry.toVar()
+
+            // Wind
+            const windUv = baseUv
+                .mul(vec2(0.35, 0.175))
+                .sub(vec2(0.1, 0.05).mul(this.game.ticker.elapsedScaledUniform))
+                .toVar()
+            const noise = texture(this.game.noises.others, windUv).r
+            windStrength.assign(noise.mul(baseUv.y).mul(this.game.wind.strength))
+            const windDirection = vec3(0.5, 0, 1)
+            newPosition.addAssign(windDirection.mul(windStrength))
+
+            return newPosition
+        })()
 
         material.outputNode = Fn(() =>
         {
             const baseColor = texture(this.game.resources.cookieBannerTexture)
+            baseColor.mulAssign(windStrength.mul(4).add(1))
 
             return this.game.lighting.lightOutputNodeBuilder(baseColor, normalWorld, totalShadows, true, false)
         })()

@@ -84,6 +84,7 @@ export class InteractiveAreas
         group.rotation.x = - Math.PI * 0.15
         group.rotation.y = Math.PI * 0.25
         group.position.copy(newPosition)
+        group.scale.setScalar(0.85)
         this.game.scene.add(group)
 
         /**
@@ -153,7 +154,6 @@ export class InteractiveAreas
         /**
          * Label
          */
-        console.log(align === InteractiveAreas.ALIGN_LEFT)
         // Canvas
         const height = 64
         const textPaddingLeft = align === InteractiveAreas.ALIGN_LEFT ? 60 : 12

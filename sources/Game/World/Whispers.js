@@ -41,7 +41,7 @@ export class Whispers
         const revealAttribute = storage(this.revealBuffer, 'float', this.count).toAttribute()
 
         // Geometry
-        const beamGeometry = new THREE.PlaneGeometry(1.25, 1.25 * 2, 1, 16)
+        const beamGeometry = new THREE.PlaneGeometry(1.5, 1.5 * 2, 1, 16)
         beamGeometry.rotateY(Math.PI * 0.25)
         
         // Material
@@ -94,6 +94,7 @@ export class Whispers
         this.flames = new THREE.InstancedMesh(beamGeometry, beamMaterial, this.count)
         this.flames.frustumCulled = false
         this.flames.visible = true
+        this.flames.position.y = 0.25
         this.game.scene.add(this.flames)
     }
 
