@@ -48,7 +48,7 @@ export class ExplosiveCrates
         for(const crate of this.list)
         {
             // Sleeping state changed
-            const isSleeping = crate.object.physical.body.isSleeping()
+            const isSleeping = crate.object.physical.body.isSleeping() || !crate.object.physical.body.isEnabled()
             if(crate.isSleeping !== isSleeping)
             {
                 if(!isSleeping)
@@ -63,6 +63,7 @@ export class ExplosiveCrates
                     })
                 }
                 crate.isSleeping = isSleeping
+                console.log('crate.isSleeping', crate.isSleeping)
             }
         }
     }

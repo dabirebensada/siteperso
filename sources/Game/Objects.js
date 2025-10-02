@@ -183,19 +183,21 @@ export class Objects
             {
                 if(object.physical.type === 'dynamic' || object.physical.type === 'kinematicPositionBased')
                 {
-                    object.physical.body.setTranslation(object.physical.initialState.position)
-                    object.physical.body.setRotation(object.physical.initialState.rotation)
-                    object.physical.body.setLinvel({ x: 0, y: 0, z: 0 })
-                    object.physical.body.setAngvel({ x: 0, y: 0, z: 0 })
-                    object.physical.body.setEnabled(true)
-                    
-                    if(object.physical.initialState.sleeping)
+                    object.physical.body.setEnabled(false)
+                    object.physical.body.setTranslation(object.physical.initialState.position, false)
+                    object.physical.body.setRotation(object.physical.initialState.rotation, false)
+                    object.physical.body.setLinvel({ x: 0, y: 0, z: 0 }, false)
+                    object.physical.body.setAngvel({ x: 0, y: 0, z: 0 }, false)
+
+                    // Wait a second and reactivate
+                    requestAnimationFrame(() =>
                     {
-                        requestAnimationFrame(() =>
-                        {
+                        object.physical.body.setEnabled(true)
+
+                        // Sleep
+                        if(object.physical.initialState.sleeping)
                             object.physical.body.sleep()
-                        })
-                    }
+                    })
                     
                     if(object.visual)
                     {
