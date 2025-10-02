@@ -63,7 +63,6 @@ export class ExplosiveCrates
                     })
                 }
                 crate.isSleeping = isSleeping
-                console.log('crate.isSleeping', crate.isSleeping)
             }
         }
     }
