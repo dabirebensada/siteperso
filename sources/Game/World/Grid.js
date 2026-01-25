@@ -62,7 +62,19 @@ export class Grid
         this.mesh.position.y = 0
         this.mesh.rotation.x = - Math.PI * 0.5
 
-        const defaultRespawn = this.game.respawns.getDefault()
+        // --- DÉBUT DE LA CORRECTION ---
+        // On tente de récupérer le point de spawn défini dans le fichier 3D
+        let defaultRespawn = this.game.respawns.getDefault()
+
+        // SÉCURITÉ CRITIQUE : Si defaultRespawn est undefined (erreur de chargement), 
+        // on force une position par défaut à (0,0,0) pour éviter le crash.
+        if (!defaultRespawn || !defaultRespawn.position) {
+            console.warn('Grid.js : Point de spawn introuvable. Utilisation de la position de secours (0,0,0).')
+            defaultRespawn = {
+                position: new THREE.Vector3(0, 0, 0)
+            }
+        }
+        // --- FIN DE LA CORRECTION ---
         this.mesh.position.x = defaultRespawn.position.x
         this.mesh.position.z = defaultRespawn.position.z
         

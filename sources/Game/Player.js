@@ -21,7 +21,20 @@ export class Player
         this.braking = 0
         this.suspensions = ['low', 'low', 'low', 'low']
 
-        const respawn = this.game.respawns.getDefault()
+        // --- DÉBUT DE LA CORRECTION ---
+        // On tente de récupérer le point de spawn défini dans le fichier 3D
+        let respawn = this.game.respawns.getDefault()
+
+        // SÉCURITÉ CRITIQUE : Si respawn est undefined (erreur de chargement), 
+        // on force une position par défaut à (0,0,0) pour éviter le crash.
+        if (!respawn || !respawn.position) {
+            console.warn('Player.js : Point de spawn introuvable. Utilisation de la position de secours (0,0,0).')
+            respawn = {
+                position: new THREE.Vector3(0, 0, 0),
+                rotation: 0
+            }
+        }
+        // --- FIN DE LA CORRECTION ---
 
         this.position = respawn.position.clone()
         this.basePosition = this.position.clone()
@@ -40,6 +53,21 @@ export class Player
         this.game.physicalVehicle.chassis.physical.initialState.position.y = respawn.position.y
         this.game.physicalVehicle.chassis.physical.initialState.position.z = respawn.position.z
         this.game.physicalVehicle.moveTo(respawn.position, respawn.rotation)
+        
+        // --- DÉBUT DE LA CORRECTION ---
+        // S'assurer que le véhicule physique est activé après le moveTo
+        // On attend quelques frames pour que la physique soit initialisée
+        this.game.ticker.wait(2, () =>
+        {
+            if (this.game.physicalVehicle.chassis && this.game.physicalVehicle.chassis.physical && this.game.physicalVehicle.chassis.physical.body) {
+                // Activer le body s'il ne l'est pas déjà
+                if (!this.game.physicalVehicle.chassis.physical.body.isEnabled()) {
+                    console.warn('Player.js : Véhicule physique désactivé au démarrage, activation...')
+                    this.game.physicalVehicle.activate()
+                }
+            }
+        })
+        // --- FIN DE LA CORRECTION ---
 
         this.game.ticker.events.on('tick', () =>
         {
@@ -476,11 +504,31 @@ export class Player
             // Find respawn
             let respawn = respawnName ? this.game.respawns.getByName(respawnName) : this.game.respawns.getClosest(this.position)
 
+            // --- DÉBUT DE LA CORRECTION ---
+            // SÉCURITÉ CRITIQUE : Si respawn est undefined, on utilise une position par défaut
+            if (!respawn || !respawn.position) {
+                console.warn('Player.js (respawn method) : Point de spawn introuvable. Utilisation de la position de secours (0,0,0).')
+                respawn = {
+                    position: new THREE.Vector3(0, 0, 0),
+                    rotation: 0
+                }
+            }
+            // --- FIN DE LA CORRECTION ---
+
             // Update physical vehicle
             this.game.physicalVehicle.moveTo(
                 respawn.position,
                 respawn.rotation
             )
+            
+            // --- DÉBUT DE LA CORRECTION ---
+            // S'assurer que le véhicule est activé après le respawn
+            if (this.game.physicalVehicle.chassis && this.game.physicalVehicle.chassis.physical && this.game.physicalVehicle.chassis.physical.body) {
+                if (!this.game.physicalVehicle.chassis.physical.body.isEnabled()) {
+                    this.game.physicalVehicle.activate()
+                }
+            }
+            // --- FIN DE LA CORRECTION ---
             
             this.state = Player.STATE_DEFAULT
             this.game.overlay.hide()

@@ -23,7 +23,8 @@ export class SocialArea extends Area
             })
         }
 
-        this.setLinks()
+        this.iconPositions = this.setIconSwaps()
+        this.setLinks(this.iconPositions)
         this.setFans()
         this.setOnlyFans()
         this.setStatue()
@@ -31,18 +32,92 @@ export class SocialArea extends Area
         this.setAchievement()
     }
 
-    setLinks()
+    // Déplace Mail/GitHub/LinkedIn sur les emplacements Discord/Twitch/X et cache les autres icônes.
+    // Retourne [posX, posTwitch, posDiscord] pour placer les 3 liens (LinkedIn, GitHub, Mail).
+    setIconSwaps()
+    {
+        const icons = {}
+        this.game.scene.traverse(o =>
+        {
+            const n = o.name
+            if(!n || !o.userData?.object) return
+            if(['discord', 'mail', 'gitHub', 'linkedIn', 'twitch', 'x', 'youtube', 'bluesky', 'bluesky.001'].includes(n))
+                icons[n] = o
+        })
+
+        const discord = icons.discord
+        const twitch = icons.twitch
+        const x = icons.x
+        const mail = icons.mail
+        const gitHub = icons.gitHub
+        const linkedIn = icons.linkedIn
+
+        if(!discord || !twitch || !x || !mail || !gitHub || !linkedIn)
+            return null
+
+        const posDiscord = discord.position.clone()
+        const posTwitch = twitch.position.clone()
+        const posX = x.position.clone()
+        const quatDiscord = discord.quaternion.clone()
+        const quatTwitch = twitch.quaternion.clone()
+        const quatX = x.quaternion.clone()
+
+        // Mail → position Discord, GitHub → position Twitch, LinkedIn → position X
+        mail.position.copy(posDiscord)
+        mail.quaternion.copy(quatDiscord)
+        gitHub.position.copy(posTwitch)
+        gitHub.quaternion.copy(quatTwitch)
+        linkedIn.position.copy(posX)
+        linkedIn.quaternion.copy(quatX)
+
+        const syncBody = (mesh) =>
+        {
+            const obj = mesh?.userData?.object
+            if(!obj?.physical?.body) return
+            const w = new THREE.Vector3()
+            const q = new THREE.Quaternion()
+            mesh.getWorldPosition(w)
+            mesh.getWorldQuaternion(q)
+            obj.physical.body.setTranslation(w)
+            obj.physical.body.setRotation(q)
+        }
+        syncBody(mail)
+        syncBody(gitHub)
+        syncBody(linkedIn)
+
+        // Cacher les icônes remplacées et inutilisées
+        discord.visible = false
+        twitch.visible = false
+        x.visible = false
+        if(icons.youtube) icons.youtube.visible = false
+        if(icons.bluesky) icons.bluesky.visible = false
+        if(icons['bluesky.001']) icons['bluesky.001'].visible = false
+
+        // Ordre des liens: LinkedIn, GitHub, Mail → positions X, Twitch, Discord
+        return [posX, posTwitch, posDiscord]
+    }
+
+    setLinks(iconPositions = null)
     {
         const radius = 6
         let i = 0
 
         for(const link of socialData)
         {
-            const angle = i * Math.PI / (socialData.length - 1)
-            const position = this.center.clone()
-            position.x += Math.cos(angle) * radius
-            position.y = 1
-            position.z -= Math.sin(angle) * radius
+            let position
+            if(iconPositions && iconPositions.length >= 3 && i < 3)
+            {
+                position = iconPositions[i].clone()
+                if(position.y === 0) position.y = 1
+            }
+            else
+            {
+                const angle = i * Math.PI / (socialData.length - 1 || 1)
+                position = this.center.clone()
+                position.x += Math.cos(angle) * radius
+                position.y = 1
+                position.z -= Math.sin(angle) * radius
+            }
 
             this.interactivePoint = this.game.interactivePoints.create(
                 position,

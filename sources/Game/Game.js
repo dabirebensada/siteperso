@@ -191,13 +191,54 @@ export class Game
         // this.monitoring = new Monitoring()
         this.world.step(1)
 
-        // Pre-render if quality high
+        // Pre-render if quality high (asynchrone pour ne pas bloquer)
+        // --- DÉBUT DE LA CORRECTION ---
+        // On rend le PreRenderer asynchrone pour ne pas bloquer l'initialisation
         if(this.quality.level === 0 && this.rendering.renderer.backend.isWebGPUBackend)
-            PreRenderer.render()
+        {
+            // On attend quelques frames pour que tout soit prêt avant le pre-render
+            this.ticker.wait(1, () =>
+            {
+                // On fait le pre-render de manière asynchrone
+                requestAnimationFrame(() =>
+                {
+                    try {
+                        PreRenderer.render()
+                    } catch (error) {
+                        console.warn('Game.js : Erreur lors du PreRenderer, continuation sans pré-rendu', error)
+                    }
+                })
+            })
+        }
+        // --- FIN DE LA CORRECTION ---
 
         this.ticker.wait(3, () =>
         {
             this.reveal.updateStep(0)
+        // --- DÉBUT DE LA CORRECTION ---
+            // Fallback : Si après 10 secondes les inputs sont toujours en mode 'intro',
+            // on force le passage en mode 'wandering' pour éviter que le joueur soit bloqué
+            this.ticker.wait(600, () => // 10 secondes à 60 FPS
+            {
+                if (this.inputs.filters.has('intro') && !this.inputs.filters.has('wandering')) {
+                    console.warn('Game.js : Timeout - Les inputs sont restés en mode "intro", passage forcé en "wandering"')
+                    this.inputs.filters.clear()
+                    this.inputs.filters.add('wandering')
+                    
+                    // S'assurer aussi que le véhicule est activé
+                    if (this.physicalVehicle.chassis && this.physicalVehicle.chassis.physical && this.physicalVehicle.chassis.physical.body) {
+                        if (!this.physicalVehicle.chassis.physical.body.isEnabled()) {
+                            this.physicalVehicle.activate()
+                        }
+                    }
+                    
+                    // S'assurer que le player est en état DEFAULT
+                    if (this.player.state !== Player.STATE_DEFAULT) {
+                        this.player.state = Player.STATE_DEFAULT
+                    }
+                }
+            })
+        // --- FIN DE LA CORRECTION ---
         })
 
         // Debug achievement

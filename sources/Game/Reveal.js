@@ -10,7 +10,19 @@ export class Reveal
         this.game = Game.getInstance()
         
         this.step = -1
-        const respawn = this.game.respawns.getDefault()
+        // --- DÉBUT DE LA CORRECTION ---
+        // On tente de récupérer le point de spawn défini dans le fichier 3D
+        let respawn = this.game.respawns.getDefault()
+
+        // SÉCURITÉ CRITIQUE : Si respawn est undefined (erreur de chargement), 
+        // on force une position par défaut à (0,0,0) pour éviter le crash.
+        if (!respawn || !respawn.position) {
+            console.warn('Reveal.js : Point de spawn introuvable. Utilisation de la position de secours (0,0,0).')
+            respawn = {
+                position: new THREE.Vector3(0, 0, 0)
+            }
+        }
+        // --- FIN DE LA CORRECTION ---
         this.position = respawn.position.clone()
         this.position2Uniform = uniform(vec2(this.position.x, this.position.z))
         this.distance = uniform(0)
@@ -173,6 +185,22 @@ export class Reveal
             // Inputs
             this.game.inputs.filters.clear()
             this.game.inputs.filters.add('wandering')
+            
+            // --- DÉBUT DE LA CORRECTION ---
+            // S'assurer que le véhicule est activé et le player est en état DEFAULT
+            // Cela garantit que le joueur peut contrôler le véhicule immédiatement
+            if (this.game.physicalVehicle.chassis && this.game.physicalVehicle.chassis.physical && this.game.physicalVehicle.chassis.physical.body) {
+                if (!this.game.physicalVehicle.chassis.physical.body.isEnabled()) {
+                    console.warn('Reveal.js (step 1) : Véhicule physique désactivé, activation...')
+                    this.game.physicalVehicle.activate()
+                }
+            }
+            // S'assurer que le player est en état DEFAULT (pas LOCKED)
+            if (this.game.player.state !== this.game.player.constructor.STATE_DEFAULT) {
+                console.warn('Reveal.js (step 1) : Player state incorrect, correction...')
+                this.game.player.state = this.game.player.constructor.STATE_DEFAULT
+            }
+            // --- FIN DE LA CORRECTION ---
 
             // View
             this.game.view.focusPoint.isTracking = true

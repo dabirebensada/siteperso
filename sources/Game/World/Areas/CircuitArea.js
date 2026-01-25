@@ -1097,7 +1097,16 @@ export class CircuitArea extends Area
         this.podium.object = this.references.items.get('podium')[0].userData.object
         this.podium.confettiPositionA = this.references.items.get('podiumConfettiA')[0].position.clone()
         this.podium.confettiPositionB = this.references.items.get('podiumConfettiB')[0].position.clone()
-        const respawn = this.game.respawns.getByName('circuit')
+        // --- DÉBUT DE LA CORRECTION ---
+        let respawn = this.game.respawns.getByName('circuit')
+        // SÉCURITÉ CRITIQUE : Si respawn est undefined, on utilise une position par défaut
+        if (!respawn || !respawn.position) {
+            console.warn('CircuitArea.js (setPodium) : Point de spawn "circuit" introuvable. Utilisation de la position de secours (0,0,0).')
+            respawn = {
+                position: new THREE.Vector3(0, 0, 0)
+            }
+        }
+        // --- FIN DE LA CORRECTION ---
         this.podium.viewFocusPosition = respawn.position.clone()
         this.podium.viewFocusPosition.x -= 4
         this.podium.viewFocusPosition.y = 0
@@ -1550,7 +1559,17 @@ export class CircuitArea extends Area
                 this.game.inputs.filters.add('wandering')
                 
                 // Update physical vehicle
-                const respawn = this.game.respawns.getByName('circuit')
+                // --- DÉBUT DE LA CORRECTION ---
+                let respawn = this.game.respawns.getByName('circuit')
+                // SÉCURITÉ CRITIQUE : Si respawn est undefined, on utilise une position par défaut
+                if (!respawn || !respawn.position) {
+                    console.warn('CircuitArea.js (onComplete) : Point de spawn "circuit" introuvable. Utilisation de la position de secours (0,0,0).')
+                    respawn = {
+                        position: new THREE.Vector3(0, 0, 0),
+                        rotation: 0
+                    }
+                }
+                // --- FIN DE LA CORRECTION ---
                 this.game.physicalVehicle.moveTo(respawn.position, respawn.rotation)
 
                 // Activate terrain physics

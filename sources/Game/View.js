@@ -113,9 +113,22 @@ export class View
 
     setFocusPoint()
     {
-        const defaultRespawn = this.game.respawns.getDefault()
-        
+        // --- DÉBUT DE LA CORRECTION ---
+        // On tente de récupérer le point de spawn défini dans le fichier 3D
+        let defaultRespawn = this.game.respawns.getDefault()
+
+        // SÉCURITÉ CRITIQUE : Si defaultRespawn est undefined (erreur de chargement), 
+        // on force une position par défaut à (0,0,0) pour éviter le crash.
+        if (!defaultRespawn || !defaultRespawn.position) {
+            console.warn('View.js : Point de spawn introuvable. Utilisation de la position de secours (0,0,0).')
+            defaultRespawn = {
+                position: new THREE.Vector3(0, 0, 0)
+            }
+        }
+        // --- FIN DE LA CORRECTION ---
+
         this.focusPoint = {}
+        // La ligne ci-dessous ne plantera plus car defaultRespawn est sécurisé
         this.focusPoint.trackedPosition = new THREE.Vector3(defaultRespawn.position.x, 0, defaultRespawn.position.z)
         this.focusPoint.isTracking = true
         this.focusPoint.position = this.focusPoint.trackedPosition.clone()

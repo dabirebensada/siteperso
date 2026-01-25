@@ -1,4 +1,5 @@
 import { clamp } from 'three/src/math/MathUtils.js'
+import * as THREE from 'three/webgpu'
 import { Game } from './Game.js'
 
 export class Map
@@ -57,7 +58,16 @@ export class Map
 
         for(const item of this.locations.items)
         {
-            const respawn = this.game.respawns.getByName(item.respawnName)
+            // --- DÉBUT DE LA CORRECTION ---
+            let respawn = this.game.respawns.getByName(item.respawnName)
+            // SÉCURITÉ CRITIQUE : Si respawn est undefined, on utilise une position par défaut
+            if (!respawn || !respawn.position) {
+                console.warn(`Map.js : Point de spawn "${item.respawnName}" introuvable. Utilisation de la position de secours (0,0,0).`)
+                respawn = {
+                    position: new THREE.Vector3(0, 0, 0)
+                }
+            }
+            // --- FIN DE LA CORRECTION ---
             const mapPosition = this.worldToMap(respawn.position)
 
             // HTML

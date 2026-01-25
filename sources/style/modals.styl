@@ -120,3 +120,87 @@
 
                     .is-mode-gamepad.is-gamepad-xbox &
                         display block
+
+    // Career Modal Styles
+    .modal.career
+        .career-details
+            max-width 800px
+            margin 0 auto
+
+            .career-title
+                font-size 32px
+                font-weight 700
+                margin-bottom 10px
+                color #ffffff
+
+                @media only screen and (max-width 520px)
+                    font-size 24px
+
+            .career-company
+                font-size 20px
+                font-weight 400
+                margin-bottom 15px
+                color #b65fff
+                opacity 0.9
+
+                @media only screen and (max-width 520px)
+                    font-size 18px
+
+            .career-meta
+                display flex
+                flex-direction column
+                gap 8px
+                margin-bottom 25px
+                font-size 14px
+                opacity 0.8
+
+                .career-period
+                    color #a2ffab
+
+                .career-location
+                    color #ff8039
+
+            .career-section
+                margin-bottom 20px
+
+                h3
+                    font-size 18px
+                    font-weight 700
+                    margin-bottom 15px
+                    color #ffffff
+
+                .career-tasks
+                    list-style none
+                    padding 0
+                    margin 0
+
+                    li
+                        padding 8px 0
+                        padding-left 20px
+                        position relative
+                        line-height 1.6
+                        opacity 0.9
+
+                        &:before
+                            content '•'
+                            position absolute
+                            left 0
+                            color #5390ff
+                            font-size 20px
+                            line-height 1
+
+            .career-links
+                margin-top 25px
+                display flex
+                flex-direction column
+                gap 10px
+
+                .link
+                    color #b65fff
+                    text-decoration none
+                    opacity 0.8
+                    transition opacity 0.2s
+
+                    &:hover
+                        opacity 1
+                        text-decoration underline
