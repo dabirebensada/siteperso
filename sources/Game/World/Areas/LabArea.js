@@ -2,7 +2,7 @@ import * as THREE from 'three/webgpu'
 import { Game } from '../../Game.js'
 import { InteractivePoints } from '../../InteractivePoints.js'
 import gsap from 'gsap'
-import labData from '../../../data/lab.js'
+import parcoursData from '../../../data/parcours.js'
 import { TextCanvas } from '../../TextCanvas.js'
 import { add, color, float, Fn, If, luminance, mix, mul, normalWorld, positionGeometry, positionWorld, sin, step, texture, uniform, uv, vec2, vec3, vec4 } from 'three/tsl'
 import { remapClamp, safeMod, signedModDelta } from '../../utilities/maths.js'
@@ -27,7 +27,7 @@ export class LabArea extends Area
         if(this.game.debug.active)
         {
             this.debugPanel = this.game.debug.panel.addFolder({
-                title: '🧪 Lab',
+                title: '📚 Parcours',
                 expanded: false,
             })
         }
@@ -90,7 +90,7 @@ export class LabArea extends Area
     {
         this.interactivePoint = this.game.interactivePoints.create(
             this.references.items.get('interactivePoint')[0].position,
-            'Lab',
+            'Parcours',
             InteractivePoints.ALIGN_RIGHT,
             InteractivePoints.STATE_CONCEALED,
             () =>
@@ -419,16 +419,16 @@ export class LabArea extends Area
             if(!this.images.initiated)
                 this.images.init(key)
 
-            // Current image => Reveal
-            if(this.navigation.current.image === key)
-            {
-                const resource = this.images.getResourceAndLoad(key)
-                this.images.textureNew.copy(resource.texture)
-                this.images.textureNew.needsUpdate = true
-                gsap.to(this.images.loadProgress, { value: 1, duration: 1, overwrite: true })
+            // Current image => Reveal (garder si navigation pas encore prête, ex. préchargement)
+            if(!this.navigation.current || this.navigation.current.image !== key)
+                return
 
-                this.images.loadSibling()
-            }
+            const resource = this.images.getResourceAndLoad(key)
+            this.images.textureNew.copy(resource.texture)
+            this.images.textureNew.needsUpdate = true
+            gsap.to(this.images.loadProgress, { value: 1, duration: 1, overwrite: true })
+
+            this.images.loadSibling()
         }
 
         // Load sibling
@@ -442,19 +442,19 @@ export class LabArea extends Area
                 projectIndex += 1
 
             if(projectIndex < 0)
-                projectIndex = labData.length - 1
+                projectIndex = parcoursData.length - 1
 
-            if(projectIndex > labData.length - 1)
+            if(projectIndex > parcoursData.length - 1)
                 projectIndex = 0
 
-            const key = labData[projectIndex].image
+            const key = parcoursData[projectIndex].image
             const resource = this.images.getResourceAndLoad(key)
         }
 
         // Get resource and load
         this.images.getResourceAndLoad = (key) =>
         {
-            const path = `lab/images/${key}`
+            const path = `parcours/images/${key}`
             
             // Try to retrieve resource
             let resource = this.images.resources.get(key)
@@ -526,6 +526,9 @@ export class LabArea extends Area
             gsap.fromTo(this.images.animationProgress, { value: 0 }, { value: 1, duration: 1, ease: 'power2.inOut', overwrite: true })
             this.images.animationDirection.value = this.navigation.direction === LabArea.DIRECTION_NEXT ? 1 : -1
         }
+
+        // Précharger toutes les images parcours pour que la grande image affiche le bon logo (ENKO, UCO) au changement
+        parcoursData.forEach(p => this.images.getResourceAndLoad(p.image))
     }
 
     setAdjacents()
@@ -603,10 +606,11 @@ export class LabArea extends Area
             this.texts.fontFamily,
             this.texts.fontWeight,
             this.texts.fontSizeMultiplier * 0.4,
-            4,
-            0.6,
+            7,
+            0.9,
             this.texts.density,
-            'center'
+            'center',
+            0.5
         )
         this.texts.createMaterialOnMesh(this.title.textMesh, this.title.textCanvas.texture)
 
@@ -626,7 +630,9 @@ export class LabArea extends Area
 
                 gsap.to(this.title.inner.rotation, { x: Math.PI * 2 * rotationDirection, duration: 1, delay: 0, ease: 'back.out(2)', overwrite: true })
 
-                this.title.textCanvas.updateText(this.navigation.current.title)
+                const cur = this.navigation.current
+                const lines = cur.years ? [cur.title, cur.years] : [cur.title]
+                this.title.textCanvas.updateText(lines)
             } })
         }
     }
@@ -721,7 +727,11 @@ export class LabArea extends Area
 
                 gsap.to(this.url.inner.rotation, { x: Math.PI * 2 * rotationDirection, duration: 1, delay: 0, ease: 'back.out(2)', overwrite: true })
 
-                this.url.textCanvas.updateText(this.navigation.current.url.replace(/https?:\/\//, ''))
+                const item = this.navigation.current
+                const displayText = item.url
+                    ? item.url.replace(/https?:\/\//, '')
+                    : (item.school && item.years ? `${item.school} · ${item.years}` : '')
+                this.url.textCanvas.updateText(displayText)
 
                 const ratio = this.url.textCanvas.getMeasure().width / this.texts.density
                 this.url.panel.scale.x = ratio + 0.2
@@ -729,13 +739,11 @@ export class LabArea extends Area
             } })
         }
 
-        // Open
+        // Open (lien externe si url, sinon rien)
         this.url.open = () =>
         {
-            if(this.navigation.current.url)
-            {
+            if(this.navigation.current?.url)
                 window.open(this.navigation.current.url, '_blank')
-            }
         }
     }
 
@@ -790,13 +798,13 @@ export class LabArea extends Area
             this.scroller.minis = {}
             this.scroller.minis.inter = 0.9
             this.scroller.minis.items = []
-            this.scroller.minis.total = labData.length * this.scroller.minis.inter
+            this.scroller.minis.total = parcoursData.length * this.scroller.minis.inter
             this.scroller.minis.current = null
             this.scroller.minis.width = 1920 / 8
             this.scroller.minis.height = 1080 / 8
 
             let i = 0
-            for(const project of labData)
+            for(const project of parcoursData)
             {
                 const mini = {}
                 mini.index = i
@@ -841,7 +849,7 @@ export class LabArea extends Area
                         const loader = this.game.resourcesLoader.getLoader('textureKtx')
 
                         loader.load(
-                            `lab/images/${project.imageMini}`,
+                            `parcours/images/${project.imageMini}`,
                             (loadedTexture) =>
                             {
                                 const alpha = uniform(0)
@@ -892,7 +900,7 @@ export class LabArea extends Area
                         this.texts.fontFamily,
                         this.texts.fontWeight,
                         this.texts.fontSizeMultiplier * 0.18,
-                        1.5,
+                        2.5,
                         0.2,
                         this.texts.density,
                         'center',
@@ -1002,8 +1010,8 @@ export class LabArea extends Area
         this.scroller.update = () =>
         {
             // Scroll
-            const centeringOffset = labData.length - 3.25
-            const closestProgress = Math.round((this.scroller.progress + this.navigation.index - centeringOffset) / labData.length) * labData.length - this.navigation.index + centeringOffset
+            const centeringOffset = parcoursData.length - 3.25
+            const closestProgress = Math.round((this.scroller.progress + this.navigation.index - centeringOffset) / parcoursData.length) * parcoursData.length - this.navigation.index + centeringOffset
             this.scroller.targetProgress = closestProgress
 
             // Active text
@@ -1408,10 +1416,10 @@ export class LabArea extends Area
         // Loop index
         let loopIndex = index
 
-        if(loopIndex > labData.length - 1)
+        if(loopIndex > parcoursData.length - 1)
             loopIndex = 0
         else if(loopIndex < 0)
-            loopIndex = labData.length - 1
+            loopIndex = parcoursData.length - 1
 
         // Already active
         if(this.navigation.index === loopIndex)
@@ -1419,13 +1427,13 @@ export class LabArea extends Area
 
         // Direction
         if(direction === null)
-            direction = signedModDelta(loopIndex, this.navigation.index, labData.length) > 0 ? LabArea.DIRECTION_PREVIOUS : LabArea.DIRECTION_NEXT
+            direction = signedModDelta(loopIndex, this.navigation.index, parcoursData.length) > 0 ? LabArea.DIRECTION_PREVIOUS : LabArea.DIRECTION_NEXT
 
         // Save
         this.navigation.index = loopIndex
-        this.navigation.current = labData[this.navigation.index]
-        this.navigation.previous = labData[(this.navigation.index - 1) < 0 ? labData.length - 1 : this.navigation.index - 1]
-        this.navigation.next = labData[(this.navigation.index + 1) % labData.length]
+        this.navigation.current = parcoursData[this.navigation.index]
+        this.navigation.previous = parcoursData[(this.navigation.index - 1) < 0 ? parcoursData.length - 1 : this.navigation.index - 1]
+        this.navigation.next = parcoursData[(this.navigation.index + 1) % parcoursData.length]
         this.navigation.direction = direction
 
         // Update components

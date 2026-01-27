@@ -1,4 +1,4 @@
-import labData from './lab.js'
+import parcoursData from './parcours.js'
 import projectsData from './projects.js'
 
 export default
@@ -25,9 +25,9 @@ export default
     ],
     [
         'lab',
-        'I\'m a bit of a scientist myself',
-        'Check every project in the <strong>lab</strong> area.',
-        labData.length,
+        'Parcours académique',
+        'Consulter chaque formation dans la zone <strong>Parcours</strong>.',
+        parcoursData.length,
         true // Unique
     ],
     [

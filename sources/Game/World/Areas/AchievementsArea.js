@@ -292,13 +292,13 @@ export class AchievementsArea extends Area
     {
         this.interactivePoint = this.game.interactivePoints.create(
             this.references.items.get('interactivePoint')[0].position,
-            'Achievements',
+            'Compétences',
             InteractivePoints.ALIGN_RIGHT,
             InteractivePoints.STATE_CONCEALED,
             () =>
             {
                 this.game.inputs.interactiveButtons.clearItems()
-                this.game.menu.open('achievements')
+                this.game.modals.open('skills')
                 this.interactivePoint.hide()
             },
             () =>
@@ -315,10 +315,14 @@ export class AchievementsArea extends Area
             }
         )
 
-        this.game.menu.items.get('achievements').events.on('close', () =>
+        const skillsModal = this.game.modals.items.get('skills')
+        if(skillsModal)
         {
-            this.interactivePoint.show()
-        })
+            skillsModal.events.on('closed', () =>
+            {
+                this.interactivePoint.show()
+            })
+        }
     }
 
     setAchievement()

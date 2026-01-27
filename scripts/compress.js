@@ -1,6 +1,8 @@
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { spawn } from 'node:child_process'
+import { existsSync } from 'fs'
+import { unlink } from 'fs/promises'
 import { glob } from 'glob'
 import sharp from 'sharp'
 
@@ -8,8 +10,9 @@ import sharp from 'sharp'
  * Models
  */
 {
-    // Get the current directory of the script.
-    const directory = path.join(path.dirname(path.join(fileURLToPath(import.meta.url), '..')), process.argv[2])
+    const gltfTransformBin = path.join(process.cwd(), 'node_modules', '.bin', process.platform === 'win32' ? 'gltf-transform.cmd' : 'gltf-transform')
+    const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+    const directory = path.join(projectRoot, process.argv[2] || 'static/')
     const files = await glob(
         `${directory}/**/*.glb`,
         {
@@ -29,14 +32,15 @@ import sharp from 'sharp'
         const dracoFile = inputFile.replace('.glb', '-compressed.glb')
         
         const command = spawn(
-            'gltf-transform',
+            gltfTransformBin,
             [
                 'etc1s',
                 inputFile,
                 ktx2File,
                 '--quality', '255',
                 '--verbose'
-            ]
+            ],
+            { shell: true }
         )
 
         command.stdout.on('data', data => { console.log(`stdout: ${data}`) })
@@ -44,7 +48,7 @@ import sharp from 'sharp'
         command.on('close', code =>
         {
             const dracoCommand = spawn(
-                'gltf-transform',
+                gltfTransformBin,
                 [
                     'draco',
                     ktx2File,
@@ -56,7 +60,8 @@ import sharp from 'sharp'
                     '--quantize-texcoord', 6,
                     '--quantize-color', 2,
                     '--quantize-generic', 2
-                ]
+                ],
+                { shell: true }
             )
             dracoCommand.stdout.on('data', data => { console.log(`stdout: ${data}`) })
             dracoCommand.stderr.on('data', data => { console.error(`stderr: ${data}`) })
@@ -68,14 +73,17 @@ import sharp from 'sharp'
  * Textures
  */
 {
-    // Get the current directory of the script.
-    const directory = path.join(path.dirname(path.join(fileURLToPath(import.meta.url), '..')), process.argv[2])
-    const files = await glob(
-        `${directory}/**/*.{png,jpg}`,
-        {
-            ignore: '**/{ui,favicons,social}/**'
-        }
-    )
+    const toktxBin = process.platform === 'win32' && existsSync('C:\\Program Files\\KTX-Software\\bin\\toktx.exe')
+        ? 'C:\\Program Files\\KTX-Software\\bin\\toktx.exe'
+        : 'toktx'
+    const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+    const directory = path.join(projectRoot, process.argv[2] || 'static/')
+    // Sous Windows, glob exige des barres obliques ; le chemin final reste valide pour fs
+    const dirSlash = directory.replace(/\\/g, '/')
+    const files = [
+        ...await glob(`${dirSlash}/**/*.png`, { ignore: '**/{ui,favicons,social}/**' }),
+        ...await glob(`${dirSlash}/**/*.jpg`, { ignore: '**/{ui,favicons,social}/**' })
+    ]
 
     const defaultPreset = '--nowarn --2d --t2 --encode etc1s --qlevel 255 --assign_oetf srgb --target_type RGB'
     const presets = [
@@ -98,7 +106,27 @@ import sharp from 'sharp'
 
     for(const inputFile of files)
     {
-        const ktx2File = inputFile.replace(/\.(png|jpg)$/, '.ktx')
+        let imageInput = inputFile
+        let tempFile = null
+
+        // ETC1S/UASTC/BC7 exigent des dimensions multiples de 4 — on redimensionne les images parcours
+        const normalized = inputFile.replace(/\\/g, '/')
+        if(/parcours[\\/]images[\\/]/.test(normalized))
+        {
+            const meta = await sharp(inputFile).metadata()
+            const w = meta.width || 4
+            const h = meta.height || 4
+            const w2 = Math.max(4, Math.floor(w / 4) * 4)
+            const h2 = Math.max(4, Math.floor(h / 4) * 4)
+            if(w2 !== w || h2 !== h)
+            {
+                tempFile = inputFile.replace(/\.(png|jpe?g)$/i, '_resized$&')
+                await sharp(inputFile).resize(w2, h2).toFile(tempFile)
+                imageInput = tempFile
+            }
+        }
+
+        const ktx2File = inputFile.replace(/\.(png|jpg)$/i, '.ktx')
 
         let preset = presets.find(preset => preset[0].test(inputFile))
 
@@ -107,20 +135,27 @@ import sharp from 'sharp'
         else
             preset = defaultPreset
 
-        const command = spawn(
-            'toktx',
-            [
-                ...preset.split(' '),
-                ktx2File,
-                inputFile,
-            ]
-        )
-
-        command.stdout.on('data', data => { console.log(inputFile); console.log(`stdout: ${data}`) })
-        command.stderr.on('data', data => { console.log(inputFile); console.error(`stderr: ${data}`) })
-        command.on('close', code =>
+        await new Promise((resolve, reject) =>
         {
-            // console.log('finished:', ktx2File);
+            const command = spawn(
+                toktxBin,
+                [
+                    ...preset.split(' '),
+                    ktx2File,
+                    imageInput,
+                ]
+            )
+            command.stdout.on('data', data => { console.log(inputFile, '→', String(data).trim()) })
+            command.stderr.on('data', data => { console.error(inputFile, 'stderr:', String(data).trim()) })
+            command.on('close', code =>
+            {
+                if(tempFile)
+                    unlink(tempFile).catch(() => {})
+                if(code !== 0)
+                    console.error(inputFile, '→ toktx exit code', code)
+                resolve()
+            })
+            command.on('error', err => { console.error(inputFile, '→ toktx error', err.message); resolve() })
         })
     }
 }
@@ -129,8 +164,8 @@ import sharp from 'sharp'
  * UI images
  */
 {
-    // Get the current directory of the script.
-    const directory = path.join(path.dirname(path.join(fileURLToPath(import.meta.url), '..')), process.argv[2])
+    const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+    const directory = path.join(projectRoot, process.argv[2] || 'static/')
     const files = await glob(
         `${directory}/ui/**/*.{png,jpg}`
     )
