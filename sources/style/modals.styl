@@ -204,3 +204,71 @@
                     &:hover
                         opacity 1
                         text-decoration underline
+
+    // Certifications Modal
+    .modal.certifications
+        .certifications-details
+            max-width 700px
+            margin 0 auto
+
+        .certifications-title
+            font-size 28px
+            font-weight 700
+            margin-bottom 24px
+            color #ffffff
+
+            @media only screen and (max-width 520px)
+                font-size 22px
+
+        .certifications-list
+            list-style none
+            padding 0
+            margin 0
+
+            li
+                display flex
+                align-items flex-start
+                gap 12px
+                padding 12px 0
+                border-bottom 1px solid rgba(255, 255, 255, 0.08)
+                line-height 1.5
+
+                &:last-child
+                    border-bottom none
+
+            .cert-icon
+                flex-shrink 0
+                width 28px
+                height 28px
+                opacity 0.9
+
+            .cert-text
+                flex 1
+
+            .cert-name
+                font-weight 700
+                color #ffffff
+                margin-bottom 4px
+
+            .cert-meta
+                font-size 14px
+                opacity 0.8
+                color #a2ffab
+
+            .cert-code
+                font-size 13px
+                opacity 0.85
+                color #ff8039
+                margin-top 6px
+
+            .cert-link
+                color #b65fff
+                text-decoration none
+                font-size 14px
+                margin-top 4px
+                display inline-block
+                opacity 0.9
+
+                &:hover
+                    opacity 1
+                    text-decoration underline

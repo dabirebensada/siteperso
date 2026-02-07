@@ -10,19 +10,11 @@ export class Intro
     {
         this.game = Game.getInstance()
 
-        // --- DÉBUT DE LA CORRECTION ---
-        // On tente de récupérer le point de spawn défini dans le fichier 3D
-        let respawn = this.game.respawns.getDefault()
-
-        // SÉCURITÉ CRITIQUE : Si respawn est undefined (erreur de chargement), 
-        // on force une position par défaut à (0,0,0) pour éviter le crash.
+        // Point de départ : Accueil (landing) dès le chargement
+        let respawn = this.game.respawns.getByName('landing') ?? this.game.respawns.getDefault()
         if (!respawn || !respawn.position) {
-            console.warn('Intro.js : Point de spawn introuvable. Utilisation de la position de secours (0,0,0).')
-            respawn = {
-                position: new THREE.Vector3(0, 0, 0)
-            }
+            respawn = { position: new THREE.Vector3(0, 0, 0) }
         }
-        // --- FIN DE LA CORRECTION ---
         this.center = respawn.position.clone()
 
         this.setCircle()

@@ -7,9 +7,9 @@ import { Player } from '../../Player.js'
 import { MeshDefaultMaterial } from '../../Materials/MeshDefaultMaterial.js'
 import { add, color, float, Fn, max, mix, normalGeometry, objectPosition, PI, positionGeometry, positionWorld, rotateUV, sin, texture, uniform, uv, vec2, vec3, vec4 } from 'three/tsl'
 import { alea } from 'seedrandom'
-import { InputFlag } from '../../InputFlag.js'
 import { Area } from './Area.js'
 import { timeToRaceString, timeToReadableString } from '../../utilities/time.js'
+import languagesData from '../../../data/languages.js'
 
 export class CircuitArea extends Area
 {
@@ -582,7 +582,7 @@ export class CircuitArea extends Area
     {
         this.interactivePoint = this.game.interactivePoints.create(
             this.references.items.get('interactivePoint')[0].position,
-            'Start race!',
+            'Démarrer la course !',
             InteractivePoints.ALIGN_RIGHT,
             InteractivePoints.STATE_CONCEALED,
             () =>
@@ -840,8 +840,69 @@ export class CircuitArea extends Area
             )
         })()
 
-        const mesh = this.references.items.get('leaderboard')[0]
+        const leaderboardRefs = this.references.items.get('leaderboard')
+        const mesh = leaderboardRefs[0]
         mesh.material = material
+
+        const applyLANGUESNeon = (targetMesh) =>
+        {
+            if (!targetMesh || !targetMesh.isMesh || targetMesh === mesh) return
+            const neonW = 512
+            const neonH = 128
+            const neonCanvas = document.createElement('canvas')
+            neonCanvas.width = neonW
+            neonCanvas.height = neonH
+            const neonCtx = neonCanvas.getContext('2d')
+            neonCtx.font = `700 ${Math.floor(neonH / 1.6)}px "Nunito"`
+            neonCtx.textAlign = 'center'
+            neonCtx.textBaseline = 'middle'
+            neonCtx.fillStyle = '#ff87a2'
+            neonCtx.strokeStyle = 'rgba(255,135,162,0.6)'
+            neonCtx.lineWidth = 3
+            neonCtx.strokeText('LANGUES', neonW / 2, neonH / 2)
+            neonCtx.fillText('LANGUES', neonW / 2, neonH / 2)
+            const neonTex = new THREE.Texture(neonCanvas)
+            neonTex.minFilter = THREE.LinearFilter
+            neonTex.magFilter = THREE.LinearFilter
+            neonTex.colorSpace = THREE.SRGBColorSpace
+            neonTex.generateMipmaps = false
+            neonTex.needsUpdate = true
+            const neonMat = new MeshDefaultMaterial({ colorNode: color('#463F35'), hasWater: false })
+            const neonBase = neonMat.outputNode
+            neonMat.outputNode = Fn(() =>
+            {
+                const t = texture(neonTex, uv(1))
+                return vec4(mix(neonBase.rgb, t.rgb.mul(1.4), t.a), neonBase.a)
+            })()
+            targetMesh.material = neonMat
+        }
+        let neonMesh = leaderboardRefs.length > 1 ? leaderboardRefs[1] : null
+        if (!neonMesh)
+        {
+            const lbExtra = this.references.getStartingWith('leaderboard')
+            const arr = lbExtra.get('title') || (lbExtra.size ? [...lbExtra.values()][0] : null)
+            neonMesh = arr ? arr[0] : null
+        }
+        if (neonMesh && neonMesh !== mesh && neonMesh.isMesh) applyLANGUESNeon(neonMesh)
+        else
+        {
+            this.model.traverse((obj) =>
+            {
+                if (!obj.isMesh || obj === mesh) return
+                const n = (obj.name || '').toLowerCase()
+                if (n.includes('leaderboard')) applyLANGUESNeon(obj)
+            })
+            const parent = mesh.parent
+            if (parent && parent.children)
+            {
+                for (const sib of parent.children)
+                {
+                    if (!sib.isMesh || sib === mesh) continue
+                    const m = Array.isArray(sib.material) ? sib.material[0] : sib.material
+                    if (m && m.map) applyLANGUESNeon(sib)
+                }
+            }
+        }
 
         const columsSettings = [
             { align: 'right', x: resolution * 0.125 },
@@ -863,11 +924,36 @@ export class CircuitArea extends Area
 
                 if(scores === null)
                 {
-                    context.font = font
-                    context.fillStyle = '#ff87a2'
+                    const padH = resolution * 0.1
+                    const padV = resolution * 0.12
+                    const maxW = resolution - padH * 2
                     context.textBaseline = 'middle'
                     context.textAlign = 'center'
-                    context.fillText('OFFLINE', resolution * 0.5, resolution * 0.5)
+                    const titleY = resolution * 0.14
+                    context.font = `700 ${Math.floor(resolution / 12)}px "Nunito"`
+                    context.fillStyle = '#ff87a2'
+                    context.strokeStyle = 'rgba(255,135,162,0.5)'
+                    context.lineWidth = 2
+                    context.strokeText('LANGUES', resolution / 2, titleY)
+                    context.fillText('LANGUES', resolution / 2, titleY)
+                    let size = Math.floor(resolution / 18)
+                    context.font = `700 ${size}px "Nunito"`
+                    while (size >= 14)
+                    {
+                        const w = Math.max(...languagesData.map(l => context.measureText(`${l.name} : ${l.level}`).width))
+                        if (w <= maxW) break
+                        size -= 2
+                        context.font = `700 ${size}px "Nunito"`
+                    }
+                    const interline = Math.floor(resolution / 6.5)
+                    context.fillStyle = '#ffffff'
+                    context.textAlign = 'left'
+                    let y = padV + interline * 1.8
+                    for (const lang of languagesData)
+                    {
+                        context.fillText(`${lang.name} : ${lang.level}`, padH, y)
+                        y += interline
+                    }
                 }
                 else if(scores.length === 0)
                 {
@@ -875,7 +961,7 @@ export class CircuitArea extends Area
                     context.fillStyle = '#ffffff'
                     context.textBaseline = 'middle'
                     context.textAlign = 'center'
-                    context.fillText('NO SCORE YET TODAY', resolution * 0.5, resolution * 0.5)
+                    context.fillText('AUCUN SCORE AUJOURD\'HUI', resolution * 0.5, resolution * 0.5)
                 }
                 else
                 {
@@ -1031,6 +1117,7 @@ export class CircuitArea extends Area
 
         const mesh = this.references.items.get('leaderboardReset')[0]
         mesh.material = material
+        mesh.visible = false
 
         this.resetTime.activate = (resetTime = 0) =>
         {
@@ -1162,56 +1249,9 @@ export class CircuitArea extends Area
         this.menu.racingButtons = this.menu.instance.contentElement.querySelector('.js-racing-buttons')
         this.menu.leaderboardNeedsUpdate = false
 
-        this.menu.instance.events.on('open', () =>
-        {
-            if(this.menu.leaderboardNeedsUpdate)
-                this.menu.updateLeaderboard(this.menu.leaderboardNeedsUpdate)
-        })
+        this.menu.instance.events.on('open', () => {})
 
-        this.menu.updateLeaderboard = (scores = null) =>
-        {
-            // Menu not open => Set flag
-            if(!this.menu.instance.isOpen)
-            {
-                this.menu.leaderboardNeedsUpdate = scores
-            }
-
-            // Menu open => Update content
-            else
-            {
-                let html = ''
-                let rank = 1
-                
-                for(const score of scores)
-                {
-                    let flag = ''
-                    const country = this.menu.inputFlag.countries.get(score[1])
-
-                    if(country)
-                        flag = /* html */`<img width="27" height="18" src="${country.imageUrl}" loading="lazy">`
-
-                    html += /* html */`
-                        <tr>
-                            <td>${rank}</td>
-                            <td>${flag}</td>
-                            <td>${score[0]}</td>
-                            <td>${timeToRaceString(score[2] / 1000)}</td>
-                        </tr>
-                    `
-
-                    rank++
-                }
-
-                this.menu.leaderboardElement.innerHTML = html
-
-                if(scores.length)
-                    this.menu.leaderboardContainerElement.classList.remove('has-no-score')
-                else
-                    this.menu.leaderboardContainerElement.classList.add('has-no-score')
-
-                this.menu.leaderboardNeedsUpdate = false
-            }
-        }
+        this.menu.updateLeaderboard = () => {}
         
         // Restart button
         const restartElement = this.menu.instance.contentElement.querySelector('.js-button-restart')
@@ -1257,104 +1297,16 @@ export class CircuitArea extends Area
         this.endModal = {}
         this.endModal.instance = this.game.modals.items.get('circuit-end')
         this.endModal.timeElement = this.endModal.instance.element.querySelector('.js-time')
-        
-        // Restart button
+
         const restartElement = this.endModal.instance.element.querySelector('.js-button-restart')
         restartElement.addEventListener('click', (event) =>
         {
             event.preventDefault()
-
             this.restart()
             this.game.modals.close()
         })
 
-        this.menu.inputGroup = this.endModal.instance.element.querySelector('.js-input-group')
-        this.menu.input = this.menu.inputGroup.querySelector('.js-input')
-
-        const sanatize = (text = '', trim = false, limit = false, stripNonLetter = false, toUpper = false) =>
-        {
-            let sanatized = text
-            if(trim)
-                sanatized = sanatized.trim()
-
-            if(stripNonLetter)
-                sanatized = sanatized.replace(/[^a-z]/gi, '')
-            
-            if(limit)
-                sanatized = sanatized.substring(0, 3)
-
-            if(toUpper)
-                sanatized = sanatized.toUpperCase()
-
-            return sanatized
-        }
-
-        const submit = () =>
-        {
-            const sanatized = sanatize(this.menu.input.value, true, true, true, true)
-            
-            if(sanatized.length === 3 && this.game.server.connected)
-            {
-                // Insert
-                this.game.server.send({
-                    type: 'circuitInsert',
-                    countryCode: this.menu.inputFlag.country ? this.menu.inputFlag.country.code : '',
-                    tag: sanatized,
-                    duration: Math.round(this.timer.elapsedTime * 1000),
-                    checkpointTimings: this.checkpoints.timings
-                })
-
-                // Achievement
-                this.game.achievements.setProgress('circuitLeaderboard', 1)
-
-                // Close modal
-                this.game.modals.close()
-            }
-        }
-
-        const updateGroup = () =>
-        {
-            if(this.menu.input.value.length === 3 && this.game.server.connected)
-                this.menu.inputGroup.classList.add('is-valide')
-            else
-                this.menu.inputGroup.classList.remove('is-valide')
-        }
-
-        this.menu.input.addEventListener('input', () =>
-        {
-            const sanatized = sanatize(this.menu.input.value, false, true, true, true)
-            this.menu.input.value = sanatized
-            updateGroup()
-        })
-
-        this.menu.inputGroup.addEventListener('submit', (event) =>
-        {
-            event.preventDefault()
-
-            submit()
-        })
-
-        this.menu.instance.events.on('closed', () =>
-        {
-            this.menu.input.value = ''
-            updateGroup()
-            this.menu.inputFlag.close()
-        })
-            
-        this.game.server.events.on('connected', () =>
-        {
-            updateGroup()
-        })
-
-        this.game.server.events.on('disconnected', () =>
-        {
-            updateGroup()
-        })
-
-        /**
-         * Flag
-         */
-        this.menu.inputFlag = new InputFlag(this.menu.inputGroup.querySelector('.js-input-flag'))
+        this.menu.inputFlag = { isOpen: false, close: () => {} }
     }
 
     restart()
@@ -1471,38 +1423,8 @@ export class CircuitArea extends Area
 
     setData()
     {
-        // Server message event
-        this.game.server.events.on('message', (data) =>
-        {
-            // Init and insert
-            if(data.type === 'init')
-            {
-                this.resetTime.activate(data.circuitResetTime)
-                this.leaderboard.update(data.circuitLeaderboard)
-                this.menu.updateLeaderboard(data.circuitLeaderboard)
-            }
-            else if(data.type === 'circuitUpdate')
-            {
-                this.leaderboard.update(data.circuitLeaderboard)
-                this.menu.updateLeaderboard(data.circuitLeaderboard)
-            }
-        })
-
-        // Server disconnected
-        this.game.server.events.on('disconnected', () =>
-        {
-            this.resetTime.deactivate()
-            this.leaderboard.update(null)
-            this.menu.updateLeaderboard(null)
-        })
-
-        // Message already received
-        if(this.game.server.initData)
-        {
-            this.resetTime.activate(this.game.server.initData.circuitResetTime)
-            this.leaderboard.update(this.game.server.initData.circuitLeaderboard)
-            this.menu.updateLeaderboard(this.game.server.initData.circuitLeaderboard)
-        }
+        // Plus de serveur / classement. Ecran LANGUES affiche toujours les langues.
+        this.leaderboard.update(null)
     }
 
     setAchievement()
@@ -1596,15 +1518,18 @@ export class CircuitArea extends Area
                 // Crates (all crates in the world?)
                 this.game.world.explosiveCrates.reset()
 
-                // Podium => Show
+                // Confettis seulement (plus de podium)
                 if(!forced)
-                    this.podium.show()
+                {
+                    this.podium.popConfetti()
+                    gsap.delayedCall(0.5, () => this.podium.popConfetti())
+                    gsap.delayedCall(1, () => this.podium.popConfetti())
+                }
 
                 // Achievement
                 if(!forced)
                 {
                     this.game.achievements.setProgress('circuitFinish', 1)
-
                     if(this.timer.elapsedTime < 30)
                         this.game.achievements.setProgress('circuitFinishFast', 1)
                 }
@@ -1612,25 +1537,13 @@ export class CircuitArea extends Area
                 // Sound
                 if(!forced)
                 {
-                    gsap.delayedCall(2, () =>
-                    {
-                        this.sounds.applause.play()
-                    })
+                    gsap.delayedCall(2, () => { this.sounds.applause.play() })
                 }
 
-                // Circuit en modal (if server connected)
-                if(this.game.server.connected && !forced)
+                // Modal circuit-end : temps + Restart (toujours, plus de classement)
+                if(!forced)
                 {
-                    gsap.delayedCall(1, () =>
-                    {
-                        // In top 10
-                        if(this.leaderboard.scores === null || this.leaderboard.scores.length < 10 || this.timer.elapsedTime * 1000 < this.leaderboard.maxTime)
-                            this.endModal.instance.element.classList.add('is-top-10')
-                        else
-                            this.endModal.instance.element.classList.remove('is-top-10')
-                        
-                        this.game.modals.open('circuit-end')
-                    })
+                    gsap.delayedCall(1, () => { this.game.modals.open('circuit-end') })
                 }
 
                 // Overlay > Hide

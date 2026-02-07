@@ -1,10 +1,15 @@
 import * as THREE from 'three/webgpu'
-import { color, float, Fn, instancedArray, mix, normalWorld, positionGeometry, step, texture, uniform, uv, vec2, vec3, vec4 } from 'three/tsl'
+import { color, float, Fn, instancedArray, mix, step, texture, uniform, uv, vec2, vec3, vec4 } from 'three/tsl'
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
 import { Inputs } from '../../Inputs/Inputs.js'
 import { InteractivePoints } from '../../InteractivePoints.js'
 import { Area } from './Area.js'
 import gsap from 'gsap'
 import { MeshDefaultMaterial } from '../../Materials/MeshDefaultMaterial.js'
+
+const LANDING_NAME_TEXT = 'DABIRE BEN'
+const FONT_PATH = 'fonts/optimer_regular.typeface.json'
 
 export class LandingArea extends Area
 {
@@ -24,17 +29,91 @@ export class LandingArea extends Area
     setLetters()
     {
         const references = this.references.items.get('letters')
+        if (!references || !references.length) return
 
-        for(const reference of references)
+        this.model.updateWorldMatrix(true, true)
+
+        const box = new THREE.Box3()
+        for (const ref of references)
+            box.expandByObject(ref)
+
+        const center = new THREE.Vector3()
+        const size = new THREE.Vector3()
+        box.getCenter(center)
+        box.getSize(size)
+
+        const worldQuat = new THREE.Quaternion()
+        references[0].getWorldQuaternion(worldQuat)
+        const lettersParent = references[0].parent
+
+        for (const ref of references)
         {
-            const physical = reference.userData.object.physical
-            physical.colliders[0].setActiveEvents(this.game.RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS)
-            physical.colliders[0].setContactForceEventThreshold(5)
-            physical.onCollision = (force, position) =>
+            if (ref.userData?.object?.physical)
             {
-                this.game.audio.groups.get('hitBrick').playRandomNext(force, position)
+                const body = ref.userData.object.physical.body
+                if (body && body.setEnabled) body.setEnabled(false)
             }
+            ref.visible = false
         }
+
+        const loader = new FontLoader()
+        loader.setPath('./')
+        loader.load(FONT_PATH, (font) =>
+        {
+            const geo = new TextGeometry(LANDING_NAME_TEXT, {
+                font,
+                size: 2,
+                depth: 0.5,
+                curveSegments: 16,
+                bevelEnabled: true,
+                bevelSize: 0.12,
+                bevelThickness: 0.1,
+                bevelOffset: 0,
+                bevelSegments: 4,
+            })
+            geo.computeBoundingBox()
+            const b = geo.boundingBox
+            const dx = (b.min.x + b.max.x) * 0.5
+            const dy = (b.min.y + b.max.y) * 0.5
+            const dz = (b.min.z + b.max.z) * 0.5
+            geo.translate(-dx, -dy, -dz)
+            geo.computeBoundingSphere()
+
+            const tx = b.max.x - b.min.x
+            const ty = b.max.y - b.min.y
+            const tz = b.max.z - b.min.z
+            const sx = tx > 1e-6 ? size.x / tx : 1
+            const sy = ty > 1e-6 ? size.y / ty : 1
+            const sz = tz > 1e-6 ? size.z / tz : 1
+            const scaleUniform = Math.min(sx, sy, sz)
+
+            const mat = this.game.materials.getFromName('groundTitle')
+            const mesh = new THREE.Mesh(geo, mat)
+            mesh.castShadow = true
+            mesh.receiveShadow = true
+            mesh.position.copy(center)
+            mesh.quaternion.copy(worldQuat)
+            mesh.scale.setScalar(scaleUniform)
+
+            this.game.scene.add(mesh)
+            if (lettersParent)
+                lettersParent.attach(mesh)
+
+            const hx = Math.max(size.x * 0.5, 2)
+            const hy = Math.max(size.y * 0.5, 0.1)
+            const hz = Math.max(size.z * 0.5, 0.2)
+
+            const physicalDesc = {
+                type: 'fixed',
+                position: { x: center.x, y: center.y, z: center.z },
+                rotation: worldQuat.clone(),
+                colliders: [{ shape: 'cuboid', parameters: [hx, hy, hz] }],
+                onCollision: (force, position) => this.game.audio.groups.get('hitBrick').playRandomNext(force, position),
+                contactThreshold: 5,
+            }
+            const physical = this.game.physics.getPhysical(physicalDesc)
+            physical.body.userData = { object: { physical } }
+        })
     }
 
     setKiosk()
@@ -42,7 +121,7 @@ export class LandingArea extends Area
         // Interactive point
         const interactivePoint = this.game.interactivePoints.create(
             this.references.items.get('kioskInteractivePoint')[0].position,
-            'Map',
+            'Carte',
             InteractivePoints.ALIGN_RIGHT,
             InteractivePoints.STATE_CONCEALED,
             () =>
@@ -76,7 +155,7 @@ export class LandingArea extends Area
         // Interactive point
         const interactivePoint = this.game.interactivePoints.create(
             this.references.items.get('controlsInteractivePoint')[0].position,
-            'Controls',
+            'Contrôles',
             InteractivePoints.ALIGN_RIGHT,
             InteractivePoints.STATE_CONCEALED,
             () =>
@@ -217,7 +296,7 @@ export class LandingArea extends Area
         // Interactive point
         this.game.interactivePoints.create(
             this.references.items.get('bonfireInteractivePoint')[0].position,
-            'Res(e)t',
+            'Réinitialiser',
             InteractivePoints.ALIGN_RIGHT,
             InteractivePoints.STATE_CONCEALED,
             () =>

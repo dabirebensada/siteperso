@@ -50,6 +50,8 @@ export class Quality
                 if (this.level === 1) {
                     console.info('Quality.js : Détection automatique - Qualité réglée en "Low" pour de meilleures performances. Vous pouvez la changer dans les paramètres.')
                 }
+                const loseContext = gl.getExtension('WEBGL_lose_context')
+                if (loseContext) loseContext.loseContext()
             }
         }
         // --- FIN DE LA CORRECTION ---

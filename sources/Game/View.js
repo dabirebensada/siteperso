@@ -113,19 +113,11 @@ export class View
 
     setFocusPoint()
     {
-        // --- DÉBUT DE LA CORRECTION ---
-        // On tente de récupérer le point de spawn défini dans le fichier 3D
-        let defaultRespawn = this.game.respawns.getDefault()
-
-        // SÉCURITÉ CRITIQUE : Si defaultRespawn est undefined (erreur de chargement), 
-        // on force une position par défaut à (0,0,0) pour éviter le crash.
+        // Point de départ : Accueil (landing) dès le chargement
+        let defaultRespawn = this.game.respawns.getByName('landing') ?? this.game.respawns.getDefault()
         if (!defaultRespawn || !defaultRespawn.position) {
-            console.warn('View.js : Point de spawn introuvable. Utilisation de la position de secours (0,0,0).')
-            defaultRespawn = {
-                position: new THREE.Vector3(0, 0, 0)
-            }
+            defaultRespawn = { position: new THREE.Vector3(0, 0, 0) }
         }
-        // --- FIN DE LA CORRECTION ---
 
         this.focusPoint = {}
         // La ligne ci-dessous ne plantera plus car defaultRespawn est sécurisé
@@ -156,8 +148,7 @@ export class View
             'suspensionsFrontRight',
             'suspensionsBackRight',
             'suspensionsBackLeft',
-            'interact',
-            'whisper'
+            'interact'
         ]
         this.game.inputs.events.on('actionStart', (action) =>
         {
@@ -306,7 +297,8 @@ export class View
     setZoom()
     {
         this.zoom = {}
-        this.zoom.baseRatio = 0.6
+        // Zoom 0 dès le départ pour être déjà à l'Accueil (sera conservé jusqu'au clic Start)
+        this.zoom.baseRatio = 0
         this.zoom.ratio = this.zoom.baseRatio
         this.zoom.smoothedRatio = this.zoom.baseRatio
         this.zoom.speedAmplitude = - 0.4

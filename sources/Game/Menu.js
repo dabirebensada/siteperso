@@ -132,15 +132,26 @@ export class Menu
         }
 
         const keys = [...this.items.keys()]
+        const navigable = keys.filter((k) => !this.items.get(k).navigationElement.classList.contains('menu-item-hidden'))
 
         for(let i = 0; i < keys.length; i++)
         {
-            const prevName = keys[i - 1 < 0 ? keys.length - 1 : i - 1]
-            const nextName = keys[(i + 1) % keys.length]
-            const item = this.items.get(keys[i])
-
-            item.prevName = prevName
-            item.nextName = nextName
+            const name = keys[i]
+            const item = this.items.get(name)
+            let nextName = null
+            let prevName = null
+            for(let j = 1; j <= keys.length; j++)
+            {
+                const n = keys[(i + j) % keys.length]
+                if(navigable.includes(n)) { nextName = n; break }
+            }
+            for(let j = 1; j <= keys.length; j++)
+            {
+                const p = keys[(i - j + keys.length) % keys.length]
+                if(navigable.includes(p)) { prevName = p; break }
+            }
+            item.prevName = prevName ?? navigable[0]
+            item.nextName = nextName ?? navigable[0]
         }
     }
 

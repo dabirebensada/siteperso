@@ -15,26 +15,52 @@ export class Respawns
     {
         this.items = new Map()
 
-        for(const child of this.game.resources.respawnsReferencesModel.scene.children)
-        {
-            child.rotation.reorder('YXZ')
-
-            let name = child.name.replace(/^respawn(.+)$/i, '$1')
-
-            name = name.charAt(0).toLowerCase() + name.slice(1)
-
-            const item = {
-                name: name,
-                position: new THREE.Vector3(
-                    child.position.x,
-                    4,
-                    child.position.z
-                ),
-                rotation: child.rotation.y
-            }
-
-            this.items.set(name, item)
+        const model = this.game.resources?.respawnsReferencesModel
+        if (!model?.scene) {
+            console.warn('Respawns.js : Modèle respawnsReferencesModel introuvable, utilisation du fallback.')
+            this._addFallbackLanding()
+            return
         }
+
+        const collect = []
+        model.scene.traverse((child) =>
+        {
+            const m = (child.name || '').match(/respawn(.+)$/i)
+            if (m)
+            {
+                child.rotation.reorder('YXZ')
+                let name = m[1].charAt(0).toLowerCase() + m[1].slice(1)
+                collect.push({ name, child })
+            }
+        })
+
+        for (const { name, child } of collect)
+        {
+            const worldPos = new THREE.Vector3()
+            child.getWorldPosition(worldPos)
+            this.items.set(name, {
+                name,
+                position: new THREE.Vector3(worldPos.x, 4, worldPos.z),
+                rotation: child.rotation.y
+            })
+        }
+
+        if (!this.items.has(this.defaultName)) {
+            console.warn(`Respawns.js : Point de spawn "${this.defaultName}" introuvable dans le modèle, ajout du fallback.`)
+            this._addFallbackLanding()
+        }
+    }
+
+    _addFallbackLanding()
+    {
+        const fallback = {
+            name: 'landing',
+            position: new THREE.Vector3(0, 4, 0),
+            rotation: 0
+        }
+        this.items.set('landing', fallback)
+        if (this.defaultName !== 'landing')
+            this.items.set(this.defaultName, fallback)
     }
 
     getByName(name)
@@ -44,7 +70,7 @@ export class Respawns
 
     getDefault()
     {
-        return this.items.get(this.defaultName)
+        return this.items.get(this.defaultName) ?? this.items.get('landing') ?? { name: 'landing', position: new THREE.Vector3(0, 4, 0), rotation: 0 }
     }
 
     getClosest(position)

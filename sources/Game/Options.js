@@ -26,7 +26,7 @@ export class Options
     {
         const element = this.element.querySelector('.js-quality-toggle')
         const text = element.querySelector('span')
-        text.textContent = this.game.quality.level === 0 ? 'High' : 'Low'
+        text.textContent = this.game.quality.level === 0 ? 'Élevée' : 'Faible'
 
         element.addEventListener('click', () =>
         {
@@ -35,7 +35,7 @@ export class Options
 
         this.game.quality.events.on('change', () =>
         {
-            text.textContent = this.game.quality.level === 0 ? 'High' : 'Low'
+            text.textContent = this.game.quality.level === 0 ? 'Élevée' : 'Faible'
         })
     }
 
@@ -73,7 +73,7 @@ export class Options
             text.textContent = 'WebGL'
 
             const tooltip = element.querySelector('.js-tooltip')
-            tooltip.innerHTML = /* html */`Your browser is <strong>not compatible</strong> with WebGPU resulting in performance loss`
+            tooltip.innerHTML = /* html */`Votre navigateur n'est <strong>pas compatible</strong> avec WebGPU, ce qui réduit les performances`
         }
     }
 
@@ -90,17 +90,17 @@ export class Options
                 element.classList.add('is-success')
                 element.classList.remove('is-danger')
                 
-                text.textContent = 'Online'
+                text.textContent = 'En ligne'
 
-                tooltip.innerHTML = /* html */`Enjoy the <strong>multiplayer</strong> features`
+                tooltip.innerHTML = /* html */`Profitez des fonctionnalités <strong>multijoueur</strong>`
             }
             else
             {
                 element.classList.remove('is-success')
                 element.classList.add('is-danger')
-                text.textContent = 'Offline'
+                text.textContent = 'Hors ligne'
 
-                tooltip.innerHTML = /* html */`Should be back soon`
+                tooltip.innerHTML = /* html */`Sera bientôt de retour`
             }
         }
 

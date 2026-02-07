@@ -21,20 +21,11 @@ export class Player
         this.braking = 0
         this.suspensions = ['low', 'low', 'low', 'low']
 
-        // --- DÉBUT DE LA CORRECTION ---
-        // On tente de récupérer le point de spawn défini dans le fichier 3D
-        let respawn = this.game.respawns.getDefault()
-
-        // SÉCURITÉ CRITIQUE : Si respawn est undefined (erreur de chargement), 
-        // on force une position par défaut à (0,0,0) pour éviter le crash.
+        // Point de départ : Accueil (landing) dès le chargement
+        let respawn = this.game.respawns.getByName('landing') ?? this.game.respawns.getDefault()
         if (!respawn || !respawn.position) {
-            console.warn('Player.js : Point de spawn introuvable. Utilisation de la position de secours (0,0,0).')
-            respawn = {
-                position: new THREE.Vector3(0, 0, 0),
-                rotation: 0
-            }
+            respawn = { position: new THREE.Vector3(0, 0, 0), rotation: 0 }
         }
-        // --- FIN DE LA CORRECTION ---
 
         this.position = respawn.position.clone()
         this.basePosition = this.position.clone()
@@ -535,15 +526,17 @@ export class Player
         })
     }
 
-    die()
+    die(onAfterRespawn = null)
     {
         this.state = Player.STATE_LOCKED
-        
+
         gsap.delayedCall(2, () =>
         {
             this.respawn(null, () =>
             {
                 this.state = Player.STATE_DEFAULT
+                if(typeof onAfterRespawn === 'function')
+                    onAfterRespawn()
             })
         })
     }

@@ -59,14 +59,6 @@ const text = `
 ║ For security reasons, I’m not sharing the server code, but the portfolio works without it.
 ╚═══════════════════════╝
 
-╔═ Musics ══════════════╗
-║ The music you hear was made especially for this portfolio by the awesome Kounine (Linktree).
-║ https://linktr.ee/Kounine
-║ They are now under CC0 license, meaning you can do whatever you want with them!
-║ Download them here.
-║ https://github.com/brunosimon/folio-2025/tree/main/static/sounds/musics
-╚═══════════════════════╝
-
 ╔═ Some more links ═════╗
 ║ Rapier (Physics library)  ⇒ https://rapier.rs/
 ║ Howler.js (Audio library) ⇒ https://howlerjs.com/

@@ -23,6 +23,7 @@ export class Materials
         // this.setPreviews()
 
         this.createPalette()
+        this.createGroundTitle()
 
         this.createEmissiveGradient('emissiveOrangeRadialGradient', '#ff8641', '#ff3e00', 1.7, true, this.debugPanel?.addFolder({ title: 'emissiveOrangeRadialGradient' }))
         this.createEmissiveGradient('emissivePurpleRadialGradient', '#454bbc', '#ff2eb4', 1.7, true, this.debugPanel?.addFolder({ title: 'emissivePurpleRadialGradient' }))
@@ -41,6 +42,21 @@ export class Materials
         
         this.save('palette', material)
 
+    }
+
+    /** Matériau partagé pour le titre au sol (letters) : gris/bleu/indigo #6f6a87, même ton que Lab/Projects/Landing (createFromMaterial). */
+    createGroundTitle()
+    {
+        const material = new MeshDefaultMaterial({
+            colorNode: color('#6f6a87'),
+            hasCoreShadows: true,
+            hasDropShadows: true,
+            hasLightBounce: true,
+            hasReveal: true,
+            hasFog: true,
+            hasWater: true,
+        })
+        this.save('groundTitle', material)
     }
 
     setGradient()

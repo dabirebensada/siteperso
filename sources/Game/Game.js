@@ -146,14 +146,12 @@ export class Game
                 [ 'sceneryModel',                          'scenery/scenery-compressed.glb',                             'gltf' ],
                 [ 'areasModel',                            'areas/areas-compressed.glb',                                 'gltf' ],
                 [ 'poleLightsModel',                       'poleLights/poleLights-compressed.glb',                       'gltf' ],
-                [ 'whisperFlameTexture',                   'whispers/whisperFlame.ktx',                                  'textureKtx', (resource) => { resource.minFilter = THREE.LinearFilter; resource.magFilter = THREE.LinearFilter; resource.generateMipmaps = false } ],
                 [ 'satanStarTexture',                      'areas/satanStar.ktx',                                        'textureKtx', (resource) => { resource.minFilter = THREE.LinearFilter; resource.magFilter = THREE.LinearFilter; resource.generateMipmaps = false } ],
                 [ 'tornadoPathReferencesModel',            'tornado/tornadoPathReferences-compressed.glb',               'gltf' ],
                 [ 'overlayPatternTexture',                 'overlay/overlayPattern.ktx',                                 'textureKtx', (resource) => { resource.wrapS = THREE.RepeatWrapping; resource.wrapT = THREE.RepeatWrapping; resource.magFilter = THREE.NearestFilter; resource.minFilter = THREE.NearestFilter; resource.generateMipmaps = false } ],
                 [ 'interactivePointsKeyIconCrossTexture',  'interactivePoints/interactivePointsKeyIconCross.ktx',        'textureKtx', (resource) => { resource.minFilter = THREE.NearestFilter; resource.magFilter = THREE.NearestFilter; resource.generateMipmaps = false } ],
                 [ 'interactivePointsKeyIconEnterTexture',  'interactivePoints/interactivePointsKeyIconEnter.ktx',        'textureKtx', (resource) => { resource.minFilter = THREE.NearestFilter; resource.magFilter = THREE.NearestFilter; resource.generateMipmaps = false } ],
                 [ 'interactivePointsKeyIconATexture',      'interactivePoints/interactivePointsKeyIconA.ktx',            'textureKtx', (resource) => { resource.minFilter = THREE.NearestFilter; resource.magFilter = THREE.NearestFilter; resource.generateMipmaps = false } ],
-                [ 'jukeboxMusicNotes',                     'jukebox/jukeboxMusicNotes.ktx',                              'textureKtx', (resource) => { resource.minFilter = THREE.LinearFilter; resource.magFilter = THREE.LinearFilter; resource.generateMipmaps = false } ],
                 [ 'achievementsGlyphsTexture',             'achievements/glyphs.ktx',                                    'textureKtx', (resource) => { resource.minFilter = THREE.LinearFilter; resource.magFilter = THREE.LinearFilter; resource.generateMipmaps = false; resource.wrapS = THREE.RepeatWrapping; } ],
                 [ 'careerFreelancerTexture',               'career/careerFreelancer.ktx',                                'textureKtx', (resource) => { resource.flipY = false; resource.minFilter = THREE.LinearFilter; resource.magFilter = THREE.LinearFilter; resource.generateMipmaps = false; resource.wrapS = THREE.ClampToEdgeWrapping; resource.wrapT = THREE.ClampToEdgeWrapping; } ],
                 [ 'careerHeticTexture',                    'career/careerHetic.ktx',                                     'textureKtx', (resource) => { resource.flipY = false; resource.minFilter = THREE.LinearFilter; resource.magFilter = THREE.LinearFilter; resource.generateMipmaps = false; resource.wrapS = THREE.ClampToEdgeWrapping; resource.wrapT = THREE.ClampToEdgeWrapping; } ],
@@ -161,8 +159,6 @@ export class Game
                 [ 'careerIRLTeacherTexture',               'career/careerIRLTeacher.ktx',                                'textureKtx', (resource) => { resource.flipY = false; resource.minFilter = THREE.LinearFilter; resource.magFilter = THREE.LinearFilter; resource.generateMipmaps = false; resource.wrapS = THREE.ClampToEdgeWrapping; resource.wrapT = THREE.ClampToEdgeWrapping; } ],
                 [ 'careerOnlineTeacherTexture',            'career/careerOnlineTeacher.ktx',                             'textureKtx', (resource) => { resource.flipY = false; resource.minFilter = THREE.LinearFilter; resource.magFilter = THREE.LinearFilter; resource.generateMipmaps = false; resource.wrapS = THREE.ClampToEdgeWrapping; resource.wrapT = THREE.ClampToEdgeWrapping; } ],
                 [ 'careerUzikTexture',                     'career/careerUzik.ktx',                                      'textureKtx', (resource) => { resource.flipY = false; resource.minFilter = THREE.LinearFilter; resource.magFilter = THREE.LinearFilter; resource.generateMipmaps = false; resource.wrapS = THREE.ClampToEdgeWrapping; resource.wrapT = THREE.ClampToEdgeWrapping; } ],
-                [ 'timeMachineScreenMGSTexture',           'timeMachine/timeMachineScreenMGS.ktx',                       'textureKtx', (resource) => { resource.minFilter = THREE.NearestFilter; resource.magFilter = THREE.NearestFilter; resource.generateMipmaps = false; resource.wrapS = THREE.ClampToEdgeWrapping; resource.wrapT = THREE.ClampToEdgeWrapping; resource.colorSpace = THREE.SRGBColorSpace; } ],
-                [ 'timeMachineScreenFolioTexture',         'timeMachine/timeMachineScreenFolio.ktx',                     'textureKtx', (resource) => { resource.minFilter = THREE.NearestFilter; resource.magFilter = THREE.NearestFilter; resource.generateMipmaps = false; resource.wrapS = THREE.ClampToEdgeWrapping; resource.wrapT = THREE.ClampToEdgeWrapping; resource.colorSpace = THREE.SRGBColorSpace; } ],
             ],
             (toLoad, total) =>
             {
@@ -190,6 +186,9 @@ export class Game
         this.title = new Title()
         // this.monitoring = new Monitoring()
         this.world.step(1)
+
+        // Positionner tous les éléments au niveau réel de l'Accueil (où est DABIRE BEN)
+        this._syncSpawnToAccueil()
 
         // Pre-render if quality high (asynchrone pour ne pas bloquer)
         // --- DÉBUT DE LA CORRECTION ---
@@ -246,6 +245,76 @@ export class Game
         {
             this.achievements.setProgress('debug', 1)
         }
+    }
+
+    _syncSpawnToAccueil()
+    {
+        const landing = this.world?.areas?.landing
+        if (!landing) return
+
+        this.scene.updateMatrixWorld(true)
+
+        const accueilPos = new THREE.Vector3()
+        const kioskRef = landing.references?.items?.get('kioskInteractivePoint')
+        if (kioskRef?.[0])
+        {
+            kioskRef[0].getWorldPosition(accueilPos)
+            accueilPos.y = 4
+        }
+        else
+        {
+            const lettersRef = landing.references?.items?.get('letters')
+            if (lettersRef?.[0])
+                lettersRef[0].getWorldPosition(accueilPos)
+            else
+                landing.model.getWorldPosition(accueilPos)
+            accueilPos.y = 4
+        }
+
+        const landingRespawn = this.respawns.getByName('landing') ?? this.respawns.getDefault()
+        const rotation = landingRespawn?.rotation ?? 0
+
+        if (landingRespawn)
+            landingRespawn.position.copy(accueilPos)
+
+        this.view.focusPoint.trackedPosition.set(accueilPos.x, 0, accueilPos.z)
+        this.view.focusPoint.position.copy(this.view.focusPoint.trackedPosition)
+        this.view.focusPoint.smoothedPosition.copy(this.view.focusPoint.trackedPosition)
+
+        this.player.position.copy(accueilPos)
+        this.player.position2.set(accueilPos.x, accueilPos.z)
+
+        this.physicalVehicle.moveTo(accueilPos, rotation)
+        if (this.physicalVehicle.chassis?.physical?.initialState)
+        {
+            const ip = this.physicalVehicle.chassis.physical.initialState.position
+            ip.x = accueilPos.x
+            ip.y = accueilPos.y
+            ip.z = accueilPos.z
+        }
+        if (this.physicalVehicle.chassis?.physical?.body && !this.physicalVehicle.chassis.physical.body.isEnabled())
+            this.physicalVehicle.activate()
+
+        this.reveal.position.copy(accueilPos)
+        this.reveal.position2Uniform.value.set(accueilPos.x, accueilPos.z)
+
+        this.world.intro.center.copy(accueilPos)
+        if (this.world.intro.circle?.mesh)
+        {
+            this.world.intro.circle.mesh.position.copy(accueilPos)
+            this.world.intro.circle.mesh.position.y = 0.001
+        }
+        if (this.world.intro.label)
+        {
+            this.world.intro.label.position.copy(accueilPos)
+            const q = this.quality.level === 0
+            this.world.intro.label.position.x += q ? 3.5 : 2.3
+            this.world.intro.label.position.y += 3.3
+            this.world.intro.label.position.z += q ? -1 : -1.8
+        }
+
+        this.world.grid.mesh.position.x = accueilPos.x
+        this.world.grid.mesh.position.z = accueilPos.z
     }
 
     reset()

@@ -27,7 +27,6 @@ export class Audio
     {
         this.initiated = true
 
-        this.setPlaylist()
         this.setAmbiants()
         this.setOneOffs()
 

@@ -30,7 +30,7 @@ export class BowlingArea extends Area
         this.setRestart()
         this.setScreen()
         this.setBumpers()
-        this.setJukebox()
+        // Jukebox désactivé (musique supprimée)
         this.setAchievement()
     }
 
@@ -226,7 +226,7 @@ export class BowlingArea extends Area
     {
         this.restartInteractivePoint = this.game.interactivePoints.create(
             this.references.items.get('restartInteractivePoint')[0].position,
-            'Restart',
+            'Recommencer',
             InteractivePoints.ALIGN_RIGHT,
             InteractivePoints.STATE_HIDDEN,
             () =>
@@ -386,7 +386,7 @@ export class BowlingArea extends Area
         // Interactive point
         this.game.interactivePoints.create(
             this.references.items.get('bumpersInteractivePoint')[0].position,
-            'Bumpers',
+            'Bandes',
             InteractivePoints.ALIGN_LEFT,
             InteractivePoints.STATE_CONCEALED,
             () =>

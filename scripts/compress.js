@@ -109,7 +109,7 @@ import sharp from 'sharp'
         let imageInput = inputFile
         let tempFile = null
 
-        // ETC1S/UASTC/BC7 exigent des dimensions multiples de 4 — on redimensionne les images parcours
+        // ETC1S/UASTC/BC7 exigent des dimensions multiples de 4 — on redimensionne parcours et projets
         const normalized = inputFile.replace(/\\/g, '/')
         if(/parcours[\\/]images[\\/]/.test(normalized))
         {
@@ -124,6 +124,17 @@ import sharp from 'sharp'
                 await sharp(inputFile).resize(w2, h2).toFile(tempFile)
                 imageInput = tempFile
             }
+        }
+        else if(/projects[\\/]images[\\/]/.test(normalized))
+        {
+            // Projets : toutes les images à 1920x1080 pour éviter les erreurs de copie
+            // (textureOld/textureNew doivent avoir les mêmes dimensions entre projets)
+            const PROJECT_SIZE = { width: 1920, height: 1080 }
+            tempFile = inputFile.replace(/\.(png|jpe?g)$/i, '_resized$&')
+            await sharp(inputFile)
+                .resize(PROJECT_SIZE.width, PROJECT_SIZE.height, { fit: 'cover', position: 'center' })
+                .toFile(tempFile)
+            imageInput = tempFile
         }
 
         const ktx2File = inputFile.replace(/\.(png|jpg)$/i, '.ktx')

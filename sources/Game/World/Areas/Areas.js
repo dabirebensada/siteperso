@@ -1,5 +1,5 @@
 import { Game } from '../../Game.js'
-import { AltarArea } from './AltarArea.js'
+import { CertificationsArea } from './CertificationsArea.js'
 import { CookieArea } from './CookieArea.js'
 import { LandingArea } from './LandingArea.js'
 import { ProjectsArea } from './ProjectsArea.js'
@@ -11,7 +11,6 @@ import { BowlingArea } from './BowlingArea.js'
 import { CircuitArea } from './CircuitArea.js'
 import { BehindTheSceneArea } from './BehindTheSceneArea.js'
 import { AchievementsArea } from './AchievementsArea.js'
-import { TimeMachine } from './TimeMachine.js'
 
 export class Areas
 {
@@ -21,7 +20,7 @@ export class Areas
 
         const list = [
             [ 'achievements', AchievementsArea ],
-            [ 'altar', AltarArea ],
+            [ 'altar', CertificationsArea ],
             [ 'behindTheScene', BehindTheSceneArea ],
             [ 'bowling', BowlingArea ],
             [ 'career', CareerArea ],
@@ -32,7 +31,6 @@ export class Areas
             [ 'projects', ProjectsArea ],
             [ 'social', SocialArea ],
             [ 'toilet', ToiletArea ],
-            [ 'timeMachine', TimeMachine ],
         ]
 
         const model = [...this.game.resources.areasModel.scene.children]

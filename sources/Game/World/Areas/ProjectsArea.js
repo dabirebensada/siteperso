@@ -462,12 +462,18 @@ export class ProjectsArea extends Area
             }
 
             const key = projectsData[projectIndex].images[imageIndex]
-            const resource = this.images.getResourceAndLoad(key)
+            if(key)
+                this.images.getResourceAndLoad(key)
         }
 
         // Get resource and load
         this.images.getResourceAndLoad = (key) =>
         {
+            if(!key)
+            {
+                const empty = { loaded: false, texture: null }
+                return empty
+            }
             const path = `projects/images/${key}`
             
             // Try to retrieve resource
@@ -507,9 +513,18 @@ export class ProjectsArea extends Area
         }
 
         // Update
-        this.images.update = (direction) =>
+        this.images.update = (direction, instant = false) =>
         {
             this.images.direction = direction
+
+            const hasImages = this.navigation.current.images.length > 0
+            if(!hasImages)
+            {
+                this.images.mesh.visible = false
+                return
+            }
+
+            this.images.mesh.visible = true
 
             // Get resource
             const key = this.navigation.current.images[this.images.index]
@@ -528,18 +543,29 @@ export class ProjectsArea extends Area
             // Update textures
             if(this.images.initiated)
             {
-                this.images.textureOld.copy(this.images.textureNew)
-                this.images.textureOld.needsUpdate = true
-
-                if(resource.loaded)
+                if(instant && resource.loaded)
                 {
+                    // Changement de projet : affichage direct, évite le chevauchement
                     this.images.textureNew.copy(resource.texture)
                     this.images.textureNew.needsUpdate = true
+                    this.images.textureOld.copy(resource.texture)
+                    this.images.textureOld.needsUpdate = true
+                    this.images.animationProgress.value = 1
+                }
+                else
+                {
+                    this.images.textureOld.copy(this.images.textureNew)
+                    this.images.textureOld.needsUpdate = true
+
+                    if(resource.loaded)
+                    {
+                        this.images.textureNew.copy(resource.texture)
+                        this.images.textureNew.needsUpdate = true
+                    }
+
+                    gsap.fromTo(this.images.animationProgress, { value: 0 }, { value: 1, duration: 1, ease: 'power2.inOut', overwrite: true })
                 }
             }
-
-            // Animate right away
-            gsap.fromTo(this.images.animationProgress, { value: 0 }, { value: 1, duration: 1, ease: 'power2.inOut', overwrite: true })
             this.images.animationDirection.value = direction === ProjectsArea.DIRECTION_NEXT ? 1 : -1
         }
     }
@@ -1019,7 +1045,10 @@ export class ProjectsArea extends Area
 
                 gsap.to(this.url.inner.rotation, { x: Math.PI * 2 * rotationDirection, duration: 1, delay: 0, ease: 'back.out(2)', overwrite: true })
 
-                this.url.textCanvas.updateText(this.navigation.current.url.replace(/https?:\/\//, ''))
+                const urlDisplay = this.navigation.current.url
+                    ? this.navigation.current.url.replace(/https?:\/\//, '')
+                    : 'Lien à venir'
+                this.url.textCanvas.updateText(urlDisplay)
 
                 const ratio = this.url.textCanvas.getMeasure().width / this.texts.density
                 this.url.panel.scale.x = ratio + 0.2
@@ -1339,7 +1368,7 @@ export class ProjectsArea extends Area
         this.adjacents.previous.intersect.active = true
         this.pagination.previousIntersect.active = true
         this.pagination.nextIntersect.active = true
-        this.url.intersect.active = true
+        this.url.intersect.active = !!this.navigation.current.url
 
         // Deactivate physical vehicle
         this.game.physicalVehicle.deactivate()
@@ -1492,12 +1521,16 @@ export class ProjectsArea extends Area
         this.url.update(direction)
         this.distinctions.update()
 
+        // Update URL intersect (disable click when no URL)
+        if(this.state === ProjectsArea.STATE_OPEN)
+            this.url.intersect.active = !!this.navigation.current.url
+
         // Change image
         let imageIndex = null
         if(firstImage)
             imageIndex = 0
         else
-            imageIndex = direction === ProjectsArea.DIRECTION_NEXT ? 0 : this.navigation.current.images.length - 1
+            imageIndex = direction === ProjectsArea.DIRECTION_NEXT ? 0 : Math.max(0, this.navigation.current.images.length - 1)
 
         // Sound
         if(!silent)
@@ -1506,14 +1539,14 @@ export class ProjectsArea extends Area
             this.game.audio.groups.get('assemble').play()
         }
 
-        this.changeImage(imageIndex, direction, silent)
+        this.changeImage(imageIndex, direction, silent, true) // instant = true pour éviter chevauchement
 
         // Achievements
         if(this.state === ProjectsArea.STATE_OPEN)
             this.game.achievements.setProgress('projects', this.navigation.current.title)
     }
 
-    changeImage(imageIndex = 0, direction = null, silent = false)
+    changeImage(imageIndex = 0, direction = null, silent = false, instant = false)
     {
         if(direction === null)
             direction = imageIndex > this.images.index ? ProjectsArea.DIRECTION_NEXT : ProjectsArea.DIRECTION_PREVIOUS
@@ -1521,7 +1554,7 @@ export class ProjectsArea extends Area
         this.images.index = imageIndex
 
         // Update components
-        this.images.update(direction)
+        this.images.update(direction, instant)
         this.pagination.update()
 
         // Sounds
